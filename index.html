@@ -1,69 +1,174 @@
+
+from pathlib import Path
+
+from zipfile import ZipFile
+
+base = Path("/mnt/data/fogo_agua_neon")
+
+base.mkdir(exist_ok=True)
+
+(base / "index.html").write_text("""<!DOCTYPE html>
+
+<html lang="pt-br">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Fogo & Água Neon</title>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<div id="ui">
+
+<h1>🔥 Fogo & 💧 Água Neon</h1>
+
+<p>Fogo: WASD | Água: Setas</p>
+
+<p>Fase <span id="fase">1</span>/10</p>
+
+</div>
+
+<canvas id="game" width="1200" height="700"></canvas>
+
+<script src="game.js"></script>
+
+</body>
+
+</html>""", encoding="utf-8")
+
+(base / "style.css").write_text("""
+
+body{margin:0;background:#081018;color:white;font-family:Arial}
+
+#ui{position:absolute;left:15px;top:10px}
+
+canvas{display:block;margin:auto;background:#0b1220}
+
+""", encoding="utf-8")
+
+(base / "game.js").write_text("""
+
 const c=document.getElementById('game');
+
 const ctx=c.getContext('2d');
+
 const faseTxt=document.getElementById('fase');
 
 let fase=1;
+
 const total=10;
 
 const fire={x:80,y:600,w:35,h:35,color:'red',vx:0,vy:0};
+
 const water={x:140,y:600,w:35,h:35,color:'cyan',vx:0,vy:0};
+
 const keys={};
 
 document.addEventListener('keydown',e=>keys[e.key]=true);
+
 document.addEventListener('keyup',e=>keys[e.key]=false);
 
 function reset(){
+
  fire.x=80; fire.y=600;
+
  water.x=140; water.y=600;
+
  faseTxt.textContent=fase;
+
 }
 
 function move(p,l,r,j){
+
  if(keys[l]) p.vx=-4;
+
  else if(keys[r]) p.vx=4;
+
  else p.vx=0;
 
  if(keys[j] && p.y>=600) p.vy=-12;
 
  p.vy+=0.6;
+
  p.x+=p.vx;
+
  p.y+=p.vy;
 
  if(p.y>600){p.y=600;p.vy=0;}
+
 }
 
 function drawPlayer(p){
+
  ctx.shadowBlur=20;
+
  ctx.shadowColor=p.color;
+
  ctx.fillStyle=p.color;
+
  ctx.fillRect(p.x,p.y,p.w,p.h);
+
 }
 
 function loop(){
+
  ctx.clearRect(0,0,c.width,c.height);
 
  move(fire,'a','d','w');
+
  move(water,'ArrowLeft','ArrowRight','ArrowUp');
 
  ctx.fillStyle='#00ff88';
+
  ctx.fillRect(1080,540,60,60);
 
  drawPlayer(fire);
+
  drawPlayer(water);
 
  const win1=fire.x>1080;
+
  const win2=water.x>1080;
 
  if(win1 && win2){
+
    fase++;
+
    if(fase>total){
-      alert('ParabÃ©ns! VocÃª concluiu as 10 fases!');
+
+      alert('Parabéns! Você concluiu as 10 fases!');
+
       fase=1;
+
    }
+
    reset();
+
  }
 
  requestAnimationFrame(loop);
+
 }
+
 reset();
+
 loop();
+
+""", encoding="utf-8")
+
+zip_path = "/mnt/data/fogo_agua_neon.zip"
+
+with ZipFile(zip_path, "w") as z:
+
+    for f in base.iterdir():
+
+        z.write(f, arcname=f.name)
+
+print(zip_path)
