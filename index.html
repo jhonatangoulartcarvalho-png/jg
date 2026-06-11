@@ -1,177 +1,69 @@
+const c=document.getElementById('game');
+const ctx=c.getContext('2d');
+const faseTxt=document.getElementById('fase');
 
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fogo e Água</title>
+let fase=1;
+const total=10;
 
-<style>
-body{
-    margin:0;
-    overflow:hidden;
-    background:linear-gradient(#0f172a,#1e293b);
-    font-family:Arial,sans-serif;
+const fire={x:80,y:600,w:35,h:35,color:'red',vx:0,vy:0};
+const water={x:140,y:600,w:35,h:35,color:'cyan',vx:0,vy:0};
+const keys={};
+
+document.addEventListener('keydown',e=>keys[e.key]=true);
+document.addEventListener('keyup',e=>keys[e.key]=false);
+
+function reset(){
+ fire.x=80; fire.y=600;
+ water.x=140; water.y=600;
+ faseTxt.textContent=fase;
 }
 
-canvas{
-    display:block;
-    margin:auto;
-    background:#0f172a;
+function move(p,l,r,j){
+ if(keys[l]) p.vx=-4;
+ else if(keys[r]) p.vx=4;
+ else p.vx=0;
+
+ if(keys[j] && p.y>=600) p.vy=-12;
+
+ p.vy+=0.6;
+ p.x+=p.vx;
+ p.y+=p.vy;
+
+ if(p.y>600){p.y=600;p.vy=0;}
 }
 
-#info{
-    position:absolute;
-    top:10px;
-    left:10px;
-    color:white;
-}
-</style>
-</head>
-<body>
-
-<div id="info">
-Fogo: WASD | Água: Setas
-</div>
-
-<canvas id="game" width="1000" height="600"></canvas>
-
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
-const gravity = 0.6;
-
-const keys = {};
-
-document.addEventListener("keydown",e=>keys[e.key]=true);
-document.addEventListener("keyup",e=>keys[e.key]=false);
-
-class Player{
-    constructor(x,y,color){
-        this.x=x;
-        this.y=y;
-        this.w=40;
-        this.h=40;
-        this.color=color;
-        this.dx=0;
-        this.dy=0;
-        this.grounded=false;
-    }
-
-    update(left,right,jump){
-        if(keys[left]) this.dx=-5;
-        else if(keys[right]) this.dx=5;
-        else this.dx=0;
-
-        if(keys[jump] && this.grounded){
-            this.dy=-12;
-            this.grounded=false;
-        }
-
-        this.dy += gravity;
-
-        this.x += this.dx;
-        this.y += this.dy;
-
-        this.grounded=false;
-
-        platforms.forEach(p=>{
-            if(
-                this.x < p.x+p.w &&
-                this.x+this.w > p.x &&
-                this.y+this.h > p.y &&
-                this.y+this.h < p.y+p.h+20 &&
-                this.dy >=0
-            ){
-                this.y=p.y-this.h;
-                this.dy=0;
-                this.grounded=true;
-            }
-        });
-    }
-
-    draw(){
-        ctx.fillStyle=this.color;
-        ctx.fillRect(this.x,this.y,this.w,this.h);
-
-        ctx.fillStyle="white";
-        ctx.fillRect(this.x+8,this.y+10,6,6);
-        ctx.fillRect(this.x+26,this.y+10,6,6);
-    }
+function drawPlayer(p){
+ ctx.shadowBlur=20;
+ ctx.shadowColor=p.color;
+ ctx.fillStyle=p.color;
+ ctx.fillRect(p.x,p.y,p.w,p.h);
 }
 
-const fire = new Player(100,500,"#ff4d4d");
-const water = new Player(180,500,"#4da6ff");
+function loop(){
+ ctx.clearRect(0,0,c.width,c.height);
 
-const platforms=[
-{x:0,y:560,w:1000,h:40},
-{x:200,y:450,w:200,h:20},
-{x:500,y:380,w:200,h:20},
-{x:760,y:280,w:150,h:20}
-];
+ move(fire,'a','d','w');
+ move(water,'ArrowLeft','ArrowRight','ArrowUp');
 
-const exit={
-x:900,
-y:220,
-w:60,
-h:60
-};
+ ctx.fillStyle='#00ff88';
+ ctx.fillRect(1080,540,60,60);
 
-function drawPlatforms(){
-    platforms.forEach(p=>{
-        ctx.fillStyle="#64748b";
-        ctx.fillRect(p.x,p.y,p.w,p.h);
-    });
+ drawPlayer(fire);
+ drawPlayer(water);
+
+ const win1=fire.x>1080;
+ const win2=water.x>1080;
+
+ if(win1 && win2){
+   fase++;
+   if(fase>total){
+      alert('ParabÃ©ns! VocÃª concluiu as 10 fases!');
+      fase=1;
+   }
+   reset();
+ }
+
+ requestAnimationFrame(loop);
 }
-
-function drawExit(){
-    ctx.fillStyle="#22c55e";
-    ctx.fillRect(exit.x,exit.y,exit.w,exit.h);
-
-    ctx.fillStyle="white";
-    ctx.font="20px Arial";
-    ctx.fillText("✓",920,258);
-}
-
-function checkWin(){
-    const fireGoal=
-        fire.x+fire.w>exit.x &&
-        fire.y+fire.h>exit.y;
-
-    const waterGoal=
-        water.x+water.w>exit.x &&
-        water.y+water.h>exit.y;
-
-    if(fireGoal && waterGoal){
-        ctx.fillStyle="rgba(0,0,0,.7)";
-        ctx.fillRect(0,0,1000,600);
-
-        ctx.fillStyle="white";
-        ctx.font="60px Arial";
-        ctx.fillText("FASE CONCLUÍDA!",250,300);
-    }
-}
-
-function gameLoop(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    fire.update("a","d","w");
-    water.update("ArrowLeft","ArrowRight","ArrowUp");
-
-    drawPlatforms();
-    drawExit();
-
-    fire.draw();
-    water.draw();
-
-    checkWin();
-
-    requestAnimationFrame(gameLoop);
-}
-
-gameLoop();
-</script>
-
-</body>
-</html>
+reset();
+loop();
